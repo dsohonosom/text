@@ -1,20 +1,17 @@
 # Idea Tracker
 
-This repository provides a minimal command-line tool for jotting down ideas and reviewing them later.
+This repository provides a minimal GUI application for jotting down ideas and reviewing them later.
 
 ## Usage
 
-1. **Add an idea**
+Run the application with:
 
-   ```bash
-   python3 idea.py add "my cool idea"
-   ```
+```bash
+python3 idea.py
+```
 
-2. **List saved ideas**
-
-   ```bash
-   python3 idea.py list
-   ```
+Use the text field to enter an idea and press **Add Idea** to store it.
+Ideas are shown in the list below the entry box.
 
 Ideas are stored locally in `ideas.json`. This file is ignored by Git.
 

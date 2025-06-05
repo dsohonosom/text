@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Simple command-line idea tracker."""
-import sys
+"""Simple GUI-based idea tracker using Tkinter."""
+import tkinter as tk
+from tkinter import ttk, messagebox
 import os
 import json
 from datetime import datetime
@@ -24,33 +25,46 @@ def add_idea(text):
     data = load_data()
     data.append({"idea": text, "timestamp": datetime.now().isoformat(timespec="seconds")})
     save_data(data)
-    print("Idea added.")
 
 
 def list_ideas():
-    data = load_data()
-    if not data:
-        print("No ideas recorded.")
-        return
-    for i, item in enumerate(data, 1):
-        print(f"{i}. {item['idea']} ({item['timestamp']})")
+    return load_data()
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-    if not argv or argv[0] in {"-h", "--help"}:
-        print("Usage: idea.py add <idea> | list")
-        return
-    if argv[0] == "add":
-        if len(argv) < 2:
-            print("Please provide an idea text.")
-        else:
-            add_idea(" ".join(argv[1:]))
-    elif argv[0] == "list":
-        list_ideas()
-    else:
-        print(f"Unknown command: {argv[0]}")
+def main():
+    root = tk.Tk()
+    root.title("Idea Tracker")
+
+    frame = ttk.Frame(root, padding=10)
+    frame.grid()
+
+    idea_var = tk.StringVar()
+
+    entry = ttk.Entry(frame, textvariable=idea_var, width=40)
+    entry.grid(row=0, column=0, padx=(0, 5))
+
+    listbox = tk.Listbox(frame, width=60)
+    listbox.grid(row=1, column=0, columnspan=2, pady=(10, 0))
+
+    def refresh():
+        listbox.delete(0, tk.END)
+        for i, item in enumerate(list_ideas(), 1):
+            listbox.insert(tk.END, f"{i}. {item['idea']} ({item['timestamp']})")
+
+    def add():
+        text = idea_var.get().strip()
+        if not text:
+            messagebox.showinfo("Input required", "Please enter an idea.")
+            return
+        add_idea(text)
+        idea_var.set("")
+        refresh()
+
+    add_button = ttk.Button(frame, text="Add Idea", command=add)
+    add_button.grid(row=0, column=1)
+
+    refresh()
+    root.mainloop()
 
 
 if __name__ == "__main__":
