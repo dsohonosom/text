@@ -1,26 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Idea Tracker</title>
+  <title>アイデア管理</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Idea Tracker</h1>
-  <form id="add-form" action="/add" method="post">
-    <label for="idea-text">Idea:</label>
-    <input type="text" name="idea" id="idea-text" size="40" placeholder="Write your next big thing" required>
-    <label for="date">Date:</label>
-    <input type="date" name="date" id="date">
-    <label for="done">Done:</label>
-    <input type="checkbox" name="done" id="done">
-    <input type="submit" value="Add Idea">
-  </form>
-  <div id="message" aria-live="polite"></div>
+  <main>
+    <h1>アイデア管理</h1>
+    <form id="add-form" action="/add" method="post">
+      <label for="idea-text">アイデア:</label>
+      <input type="text" name="idea" id="idea-text" size="40" placeholder="あなたの次のひらめきを入力" required>
+      <label for="date">日付:</label>
+      <input type="date" name="date" id="date">
+      <label for="done">完了:</label>
+      <input type="checkbox" name="done" id="done">
+      <input type="submit" value="追加">
+    </form>
+    <div id="message" aria-live="polite"></div>
 
-  <h2>Ideas</h2>
-  <ul id="idea-list"></ul>
+    <h2>アイデア一覧</h2>
+    <ul id="idea-list"></ul>
+  </main>
 
   <script src="script.js"></script>
 </body>

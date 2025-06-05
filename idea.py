@@ -101,16 +101,28 @@ class IdeaHandler(http.server.BaseHTTPRequestHandler):
             done = "done" in params
             if text:
                 add_idea(text, date=date, done=done)
-            self.send_response(204)
+                resp = "ok"
+            else:
+                resp = "no text"
+            data_bytes = resp.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(data_bytes)))
             self.end_headers()
+            self.wfile.write(data_bytes)
         elif self.path == "/done":
             length = int(self.headers.get("Content-Length", 0))
             data = self.rfile.read(length).decode()
             params = urllib.parse.parse_qs(data)
             idx = int(params.get("idx", ["-1"])[0])
             mark_done(idx)
-            self.send_response(204)
+            resp = "ok"
+            data_bytes = resp.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(data_bytes)))
             self.end_headers()
+            self.wfile.write(data_bytes)
         else:
             self.send_error(404)
 
