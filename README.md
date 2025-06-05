@@ -21,7 +21,14 @@ reviewing them later.
    Each idea is printed with its date and whether it has been done (`✓` for done,
    `x` for not yet).
 
-3. **Use the GUI**
+3. **Mark an idea as done**
+
+   ```bash
+   python3 idea.py done 1
+   ```
+   The number is the idea's position from the `list` command.
+
+4. **Use the GUI**
 
    ```bash
    python3 idea.py gui

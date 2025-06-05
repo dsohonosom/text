@@ -51,13 +51,27 @@ def list_ideas():
         print(f"{i}. {item['idea']} [{date}] ({done_flag})")
 
 
+def mark_done(index):
+    """Mark an existing idea as done by its index (0-based)."""
+    data = load_data()
+    if 0 <= index < len(data):
+        data[index]["done"] = True
+        save_data(data)
+        print(f"Idea {index + 1} marked as done.")
+    else:
+        print("Invalid idea index.")
+
+
 class IdeaHandler(http.server.BaseHTTPRequestHandler):
     """Simple request handler to display and update ideas."""
 
     def _render_page(self, message=""):
         ideas = load_data()
         html = [
-            "<html><head><meta charset='utf-8'><title>Idea Tracker</title></head><body>",
+            "<html><head><meta charset='utf-8'><title>Idea Tracker</title>",
+            "<style>body{font-family:Arial, sans-serif;margin:40px;}",
+            "li{margin-bottom:0.5em;}li.done{color:gray;text-decoration:line-through;}",
+            "form.inline{display:inline;margin-left:1em;}</style></head><body>",
             "<h1>Idea Tracker</h1>",
         ]
         if message:
@@ -74,10 +88,18 @@ class IdeaHandler(http.server.BaseHTTPRequestHandler):
         if not ideas:
             html.append("<li>No ideas recorded.</li>")
         else:
-            for item in ideas:
+            for i, item in enumerate(ideas):
                 done_flag = "✓" if item.get("done") else "x"
                 date = item.get("date", "-")
-                html.append(f"<li>{item['idea']} [{date}] ({done_flag})</li>")
+                cls = "done" if item.get("done") else ""
+                html.append(
+                    f"<li class='{cls}'>{item['idea']} [{date}] ({done_flag})"
+                    f"<form class='inline' method='post' action='/done'>"
+                    f"<input type='hidden' name='idx' value='{i}'/>"
+                    f"<input type='submit' value='Mark done'" +
+                    (" disabled" if item.get("done") else "") +
+                    "/></form></li>"
+                )
         html.append("</ul></body></html>")
         body = "".join(html).encode()
         self.send_response(200)
@@ -106,6 +128,13 @@ class IdeaHandler(http.server.BaseHTTPRequestHandler):
             else:
                 message = "No idea provided."
             self._render_page(message)
+        elif self.path == "/done":
+            length = int(self.headers.get("Content-Length", 0))
+            data = self.rfile.read(length).decode()
+            params = urllib.parse.parse_qs(data)
+            idx = int(params.get("idx", ["-1"])[0])
+            mark_done(idx)
+            self._render_page("Idea updated.")
         else:
             self.send_error(404)
 
@@ -133,6 +162,8 @@ def main(argv=None):
 
     subparsers.add_parser("list", help="List saved ideas")
     subparsers.add_parser("gui", help="Launch web GUI")
+    done_p = subparsers.add_parser("done", help="Mark idea as done")
+    done_p.add_argument("index", type=int, help="Idea number (1-based)")
 
     args = parser.parse_args(argv)
 
@@ -142,6 +173,8 @@ def main(argv=None):
         list_ideas()
     elif args.command == "gui":
         show_gui()
+    elif args.command == "done":
+        mark_done(args.index - 1)
     else:
         parser.print_help()
 
