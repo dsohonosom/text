@@ -21,4 +21,12 @@ reviewing them later.
    Each idea is printed with its date and whether it has been done (`✓` for done,
    `x` for not yet).
 
+3. **Use the GUI**
+
+   ```bash
+   python3 idea.py gui
+   ```
+   This starts a local web server and opens your browser to
+   `http://localhost:8000` where you can add and view ideas in HTML.
+
 Ideas are stored locally in `ideas.json`. This file is ignored by Git.
