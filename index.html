@@ -2,17 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Idea Tracker</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>Idea Tracker</h1>
-  <form id="add-form">
-    Idea: <input type="text" name="idea" size="40"> 
-    Date: <input type="date" name="date" id="date"> 
-    Done: <input type="checkbox" name="done"> 
+  <form id="add-form" action="/add" method="post">
+    <label for="idea-text">Idea:</label>
+    <input type="text" name="idea" id="idea-text" size="40" placeholder="Write your next big thing" required>
+    <label for="date">Date:</label>
+    <input type="date" name="date" id="date">
+    <label for="done">Done:</label>
+    <input type="checkbox" name="done" id="done">
     <input type="submit" value="Add Idea">
   </form>
+  <div id="message" aria-live="polite"></div>
 
   <h2>Ideas</h2>
   <ul id="idea-list"></ul>
