@@ -26,6 +26,7 @@ reviewing them later.
    ```bash
    python3 idea.py gui
    ```
-   This launches a small Tkinter window for adding and viewing ideas.
+   This starts a local web server and opens your browser to
+   `http://localhost:8000` where you can add and view ideas in HTML.
 
 Ideas are stored locally in `ideas.json`. This file is ignored by Git.

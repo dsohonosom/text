@@ -4,8 +4,10 @@ import argparse
 import os
 import json
 from datetime import datetime
-import tkinter as tk
-from tkinter import messagebox
+import http.server
+import socketserver
+import urllib.parse
+import webbrowser
 
 DATA_FILE = "ideas.json"
 
@@ -49,57 +51,75 @@ def list_ideas():
         print(f"{i}. {item['idea']} [{date}] ({done_flag})")
 
 
-def show_gui():
-    root = tk.Tk()
-    root.title("Idea Tracker")
+class IdeaHandler(http.server.BaseHTTPRequestHandler):
+    """Simple request handler to display and update ideas."""
 
-    tk.Label(root, text="Idea:").grid(row=0, column=0, sticky="e")
-    idea_entry = tk.Entry(root, width=40)
-    idea_entry.grid(row=0, column=1, columnspan=3, sticky="we")
-
-    tk.Label(root, text="Date:").grid(row=1, column=0, sticky="e")
-    date_entry = tk.Entry(root)
-    date_entry.grid(row=1, column=1, sticky="we")
-    date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
-
-    done_var = tk.BooleanVar()
-    tk.Checkbutton(root, text="Done", variable=done_var).grid(row=1, column=2, sticky="w")
-
-    status_var = tk.StringVar()
-    tk.Label(root, textvariable=status_var).grid(row=2, column=0, columnspan=4, sticky="w")
-
-    def on_add():
-        text = idea_entry.get().strip()
-        if not text:
-            messagebox.showwarning("Input required", "Please enter an idea.")
-            return
-        add_idea(text, date=date_entry.get().strip(), done=done_var.get())
-        status_var.set("Idea added.")
-        idea_entry.delete(0, tk.END)
-        show_list()
-
-    tk.Button(root, text="Add Idea", command=on_add).grid(row=3, column=0, sticky="we")
-
-    ideas_box = tk.Text(root, width=60, height=10, state="disabled")
-    ideas_box.grid(row=4, column=0, columnspan=4, pady=(5, 0))
-
-    def show_list():
+    def _render_page(self, message=""):
         ideas = load_data()
-        ideas_box.config(state="normal")
-        ideas_box.delete("1.0", tk.END)
+        html = [
+            "<html><head><meta charset='utf-8'><title>Idea Tracker</title></head><body>",
+            "<h1>Idea Tracker</h1>",
+        ]
+        if message:
+            html.append(f"<p>{message}</p>")
+        today = datetime.now().strftime("%Y-%m-%d")
+        html.append(
+            "<form method='post' action='/add'>"
+            "Idea: <input type='text' name='idea' size='40'/> "
+            f"Date: <input type='date' name='date' value='{today}'/> "
+            "Done: <input type='checkbox' name='done'/> "
+            "<input type='submit' value='Add Idea'/></form>"
+        )
+        html.append("<h2>Ideas</h2><ul>")
         if not ideas:
-            ideas_box.insert(tk.END, "No ideas recorded.\n")
+            html.append("<li>No ideas recorded.</li>")
         else:
-            for i, item in enumerate(ideas, 1):
+            for item in ideas:
                 done_flag = "✓" if item.get("done") else "x"
                 date = item.get("date", "-")
-                ideas_box.insert(tk.END, f"{i}. {item['idea']} [{date}] ({done_flag})\n")
-        ideas_box.config(state="disabled")
+                html.append(f"<li>{item['idea']} [{date}] ({done_flag})</li>")
+        html.append("</ul></body></html>")
+        body = "".join(html).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
-    tk.Button(root, text="List Ideas", command=show_list).grid(row=3, column=1, sticky="we")
+    def do_GET(self):
+        if self.path == "/":
+            self._render_page()
+        else:
+            self.send_error(404)
 
-    show_list()
-    root.mainloop()
+    def do_POST(self):
+        if self.path == "/add":
+            length = int(self.headers.get("Content-Length", 0))
+            data = self.rfile.read(length).decode()
+            params = urllib.parse.parse_qs(data)
+            text = params.get("idea", [""])[0].strip()
+            date = params.get("date", [""])[0] or None
+            done = "done" in params
+            if text:
+                add_idea(text, date=date, done=done)
+                message = "Idea added."
+            else:
+                message = "No idea provided."
+            self._render_page(message)
+        else:
+            self.send_error(404)
+
+
+def show_gui(host="127.0.0.1", port=8000):
+    """Start a simple HTTP server and open a browser for interaction."""
+    with socketserver.TCPServer((host, port), IdeaHandler) as httpd:
+        url = f"http://{host}:{port}/"
+        print(f"Serving on {url}")
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
+        httpd.serve_forever()
 
 
 def main(argv=None):
@@ -112,7 +132,7 @@ def main(argv=None):
     add_p.add_argument("--done", action="store_true", help="Mark idea as considered/implemented")
 
     subparsers.add_parser("list", help="List saved ideas")
-    subparsers.add_parser("gui", help="Launch GUI")
+    subparsers.add_parser("gui", help="Launch web GUI")
 
     args = parser.parse_args(argv)
 
