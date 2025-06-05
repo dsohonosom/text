@@ -63,54 +63,31 @@ def mark_done(index):
 
 
 class IdeaHandler(http.server.BaseHTTPRequestHandler):
-    """Simple request handler to display and update ideas."""
+    """Simple request handler serving a small HTML/JS interface."""
 
-    def _render_page(self, message=""):
-        ideas = load_data()
-        html = [
-            "<html><head><meta charset='utf-8'><title>Idea Tracker</title>",
-            "<style>body{font-family:Arial, sans-serif;margin:40px;}",
-            "li{margin-bottom:0.5em;}li.done{color:gray;text-decoration:line-through;}",
-            "form.inline{display:inline;margin-left:1em;}</style></head><body>",
-            "<h1>Idea Tracker</h1>",
-        ]
-        if message:
-            html.append(f"<p>{message}</p>")
-        today = datetime.now().strftime("%Y-%m-%d")
-        html.append(
-            "<form method='post' action='/add'>"
-            "Idea: <input type='text' name='idea' size='40'/> "
-            f"Date: <input type='date' name='date' value='{today}'/> "
-            "Done: <input type='checkbox' name='done'/> "
-            "<input type='submit' value='Add Idea'/></form>"
-        )
-        html.append("<h2>Ideas</h2><ul>")
-        if not ideas:
-            html.append("<li>No ideas recorded.</li>")
-        else:
-            for i, item in enumerate(ideas):
-                done_flag = "✓" if item.get("done") else "x"
-                date = item.get("date", "-")
-                cls = "done" if item.get("done") else ""
-                html.append(
-                    f"<li class='{cls}'>{item['idea']} [{date}] ({done_flag})"
-                    f"<form class='inline' method='post' action='/done'>"
-                    f"<input type='hidden' name='idx' value='{i}'/>"
-                    f"<input type='submit' value='Mark done'" +
-                    (" disabled" if item.get("done") else "") +
-                    "/></form></li>"
-                )
-        html.append("</ul></body></html>")
-        body = "".join(html).encode()
+    def _send_file(self, path, ctype):
+        with open(path, "rb") as f:
+            data = f.read()
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(data)
 
     def do_GET(self):
         if self.path == "/":
-            self._render_page()
+            self._send_file("index.html", "text/html; charset=utf-8")
+        elif self.path == "/style.css":
+            self._send_file("style.css", "text/css; charset=utf-8")
+        elif self.path == "/script.js":
+            self._send_file("script.js", "application/javascript; charset=utf-8")
+        elif self.path == "/ideas":
+            data = json.dumps(load_data()).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         else:
             self.send_error(404)
 
@@ -124,17 +101,16 @@ class IdeaHandler(http.server.BaseHTTPRequestHandler):
             done = "done" in params
             if text:
                 add_idea(text, date=date, done=done)
-                message = "Idea added."
-            else:
-                message = "No idea provided."
-            self._render_page(message)
+            self.send_response(204)
+            self.end_headers()
         elif self.path == "/done":
             length = int(self.headers.get("Content-Length", 0))
             data = self.rfile.read(length).decode()
             params = urllib.parse.parse_qs(data)
             idx = int(params.get("idx", ["-1"])[0])
             mark_done(idx)
-            self._render_page("Idea updated.")
+            self.send_response(204)
+            self.end_headers()
         else:
             self.send_error(404)
 
@@ -161,7 +137,9 @@ def main(argv=None):
     add_p.add_argument("--done", action="store_true", help="Mark idea as considered/implemented")
 
     subparsers.add_parser("list", help="List saved ideas")
-    subparsers.add_parser("gui", help="Launch web GUI")
+    gui_p = subparsers.add_parser("gui", help="Launch web GUI")
+    gui_p.add_argument("--host", default="127.0.0.1", help="Host to serve on")
+    gui_p.add_argument("--port", type=int, default=8000, help="Port to serve on")
     done_p = subparsers.add_parser("done", help="Mark idea as done")
     done_p.add_argument("index", type=int, help="Idea number (1-based)")
 
@@ -172,7 +150,7 @@ def main(argv=None):
     elif args.command == "list":
         list_ideas()
     elif args.command == "gui":
-        show_gui()
+        show_gui(host=args.host, port=args.port)
     elif args.command == "done":
         mark_done(args.index - 1)
     else:
