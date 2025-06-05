@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Simple command-line idea tracker."""
-import sys
+import argparse
 import os
 import json
 from datetime import datetime
@@ -20,9 +20,18 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def add_idea(text):
+def add_idea(text, date=None, done=False):
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
     data = load_data()
-    data.append({"idea": text, "timestamp": datetime.now().isoformat(timespec="seconds")})
+    data.append(
+        {
+            "idea": text,
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "date": date,
+            "done": done,
+        }
+    )
     save_data(data)
     print("Idea added.")
 
@@ -33,24 +42,30 @@ def list_ideas():
         print("No ideas recorded.")
         return
     for i, item in enumerate(data, 1):
-        print(f"{i}. {item['idea']} ({item['timestamp']})")
+        done_flag = "✓" if item.get("done") else "x"
+        date = item.get("date", "-")
+        print(f"{i}. {item['idea']} [{date}] ({done_flag})")
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-    if not argv or argv[0] in {"-h", "--help"}:
-        print("Usage: idea.py add <idea> | list")
-        return
-    if argv[0] == "add":
-        if len(argv) < 2:
-            print("Please provide an idea text.")
-        else:
-            add_idea(" ".join(argv[1:]))
-    elif argv[0] == "list":
+    parser = argparse.ArgumentParser(description="Simple command-line idea tracker")
+    subparsers = parser.add_subparsers(dest="command")
+
+    add_p = subparsers.add_parser("add", help="Add a new idea")
+    add_p.add_argument("text", nargs="+", help="Idea text")
+    add_p.add_argument("--date", "-d", help="Date for the idea (YYYY-MM-DD)")
+    add_p.add_argument("--done", action="store_true", help="Mark idea as considered/implemented")
+
+    subparsers.add_parser("list", help="List saved ideas")
+
+    args = parser.parse_args(argv)
+
+    if args.command == "add":
+        add_idea(" ".join(args.text), date=args.date, done=args.done)
+    elif args.command == "list":
         list_ideas()
     else:
-        print(f"Unknown command: {argv[0]}")
+        parser.print_help()
 
 
 if __name__ == "__main__":
