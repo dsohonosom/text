@@ -6,7 +6,7 @@ async function fetchIdeas(){
     const ideas = await res.json();
     if(ideas.length === 0){
       const li = document.createElement('li');
-      li.textContent = 'No ideas recorded.';
+      li.textContent = 'アイデアはまだ登録されていません。';
       ul.appendChild(li);
       return;
     }
@@ -17,11 +17,11 @@ async function fetchIdeas(){
       const form = document.createElement('form');
       form.className = 'inline';
       form.innerHTML = `<input type="hidden" name="idx" value="${idx}">
-  <input type="submit" value="Mark done"${item.done ? ' disabled':''}>`;
+  <input type="submit" value="完了"${item.done ? ' disabled':''}>`;
       form.addEventListener('submit', async (e)=>{
         e.preventDefault();
         const data = new URLSearchParams(new FormData(form));
-        await fetch('/done', {method:'POST', body:data});
+        await fetch('/done', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:data});
         fetchIdeas();
       });
       li.appendChild(form);
@@ -29,7 +29,7 @@ async function fetchIdeas(){
     });
   }catch(err){
     const li = document.createElement('li');
-    li.textContent = 'Failed to load ideas.';
+    li.textContent = 'アイデアの読み込みに失敗しました。';
     ul.appendChild(li);
   }
 }
@@ -46,12 +46,12 @@ document.getElementById('add-form').addEventListener('submit', async (e)=>{
   const form = e.target;
   const data = new URLSearchParams(new FormData(form));
   try{
-    const res = await fetch('/add', {method:'POST', body:data});
+    const res = await fetch('/add', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:data});
     if(!res.ok) throw new Error();
-    showMessage('Idea added.');
+    showMessage('アイデアを追加しました。');
     form.reset();
   }catch(err){
-    showMessage('Failed to add idea', true);
+    showMessage('アイデアの追加に失敗しました。', true);
   }
   document.getElementById('date').valueAsNumber = Date.now() - new Date().getTimezoneOffset()*60000;
   fetchIdeas();
